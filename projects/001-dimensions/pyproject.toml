@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unitguard-dimensions"
+version = "0.1.0"
+description = "Exact dimension algebra over the SI base dimensions, with rational exponents."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["units", "dimensional-analysis", "si", "correctness"]
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["unitguard_dimensions*"]

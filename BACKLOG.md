@@ -17,11 +17,10 @@ Rules of thumb applied to every item:
 
 ## Done
 
-_nothing yet_
+- [x] **001 — dimensions** · Exact rational dimension algebra over the seven SI base dimensions, with the abelian group axioms asserted directly. 41 tests, zero dependencies.
 
 ## Queue
 
-- [ ] **001 — dimensions** · Dimension algebra over the SI base dimensions: multiplication, division, powers, and equality that ignores unit choice but not dimension.
 - [ ] **002 — quantity** · A quantity type carrying magnitude and unit, with arithmetic that refuses to add incompatible dimensions.
 - [ ] **003 — registry** · Unit parsing and a registry covering the energy, mass, emissions and currency-per-unit vocabulary these models actually use.
 - [ ] **004 — carbon-units** · The conversions that bite: carbon versus carbon dioxide, CO2 versus CO2e, and global warming potentials that differ by IPCC assessment report.

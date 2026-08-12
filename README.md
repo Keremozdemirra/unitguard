@@ -36,3 +36,10 @@ See [BACKLOG.md](BACKLOG.md).
 ## Licence
 
 MIT, per project. See [LICENSE](LICENSE).
+
+## Contents
+
+| # | Project | What it does |
+| --- | --- | --- |
+| 001 | [dimensions](projects/001-dimensions) | Exact dimension algebra over the seven SI base dimensions, with rational exponents so roots and equality stay reliable. |
+
