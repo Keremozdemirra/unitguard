@@ -83,7 +83,7 @@ Alongside those: powers add under multiplication, roots invert powers exactly,
 and `ENERGY * EMISSION_INTENSITY == MASS`, the identity every Scope 2
 calculation rests on.
 
-41 tests.
+55 tests.
 
 ## Base dimensions
 
@@ -101,6 +101,38 @@ here.
 It knows nothing about units — no kWh, no tonnes, no parsing, no conversion.
 That is the next layer. This module answers only whether two quantities measure
 the same kind of thing.
+
+## Reading a dimension back
+
+`__str__` writes a dimension; `parse` reads one:
+
+```python
+from unitguard_dimensions import ENERGY, parse
+
+parse("M·L^2·T^-2") == ENERGY          # True
+parse("M/(L^2 M T^-2)")                # emission intensity
+parse(str(d)) == d                     # for every d
+```
+
+That last line is the point of having a parser at all: without it a dimension
+cannot safely be written into a config file, a column header or a docstring,
+because the value that comes back is not reliably the value that went out. The
+round trip is swept over 300 randomly generated dimensions, including
+fractional exponents.
+
+Multiplication may be written `·`, `*` or as whitespace; `/` divides; brackets
+group; symbols are case-insensitive, and Θ may be typed `Th` or `theta`,
+because a parser that only accepts the correct-and-awkward spelling gets worked
+around rather than used.
+
+Four things raise rather than guess:
+
+| Input | Why |
+| --- | --- |
+| `parse("kWh")` | A unit, not a dimension. Mapping units onto dimensions is the registry's job, and a parser that quietly turns kWh into energy will eventually quietly turn something else into the wrong thing. |
+| `parse("M/L/T")` | Chained division reads differently to different people. A bracket costs two characters. |
+| `parse("L^1/2")` | Indistinguishable from division without guessing. `__str__` emits the bracketed `L^(1/2)`, which is what round-trips. |
+| `parse("L^(1/2")` | Unclosed bracket. |
 
 ## Licence
 

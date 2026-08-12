@@ -13,6 +13,7 @@ from .dimensions import (
     Dimension,
     DimensionError,
     name_of,
+    parse,
     product,
 )
 
@@ -31,5 +32,6 @@ __all__ = [
     "Dimension",
     "DimensionError",
     "name_of",
+    "parse",
     "product",
 ]

@@ -255,3 +255,112 @@ def product(dimensions: Iterable[Dimension]) -> Dimension:
     for dimension in dimensions:
         result = result * dimension
     return result
+
+
+# -- parsing ----------------------------------------------------------------
+
+#: Accepted spellings for each base symbol. Theta is offered as "Th" and "Θ"
+#: because the Greek letter is correct and awkward to type, and a parser that
+#: only accepts the correct-and-awkward form gets worked around rather than
+#: used.
+_SYMBOL_LOOKUP = {}
+for _symbol in BASE_SYMBOLS:
+    _SYMBOL_LOOKUP[_symbol.lower()] = _symbol
+_SYMBOL_LOOKUP["th"] = "Θ"
+_SYMBOL_LOOKUP["theta"] = "Θ"
+
+#: Stands in for a "/" belonging to a bracketed exponent rather than to
+#: division, so the top-level split cannot mistake one for the other.
+_PROTECTED_SLASH = "\x00"
+
+
+def parse(text: str) -> Dimension:
+    """Parse a dimension expression back into a :class:`Dimension`.
+
+    ``parse(str(d)) == d`` for every dimension, which is the property that
+    makes a dimension writable in a config file, a column header or a
+    docstring and read back exactly.
+
+    Accepts ``*``, ``·`` or whitespace for multiplication, ``/`` for division,
+    ``^`` for exponentiation, and brackets for grouping. A non-integer exponent
+    must be bracketed -- ``L^(1/2)``, which is what ``__str__`` already emits --
+    because ``L^1/2`` cannot be told apart from division without guessing.
+
+    Deliberately narrow: this parses *dimensions*, not units. ``parse("kWh")``
+    raises. Mapping unit strings onto dimensions is the registry's job, and a
+    parser that quietly turns kWh into energy is one that will eventually
+    quietly turn something else into the wrong thing.
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise DimensionError("nothing to parse")
+    body = _protect_exponents(text.strip(), text)
+    if body == "1":
+        return DIMENSIONLESS
+
+    parts = body.split("/")
+    if len(parts) > 2:
+        raise DimensionError(
+            f"{text!r} has more than one '/'. Chained division reads "
+            "differently to different people, so it is refused rather than "
+            "guessed; bracket the denominator instead."
+        )
+    result = _parse_product(parts[0], text)
+    if len(parts) == 2:
+        result = result / _parse_product(parts[1], text)
+    return result
+
+
+def _protect_exponents(body: str, original: str) -> str:
+    """Hide slashes inside ``^( ... )`` from the division split."""
+    out = []
+    index = 0
+    while index < len(body):
+        if body[index] == "^" and body[index + 1:index + 2] == "(":
+            close = body.find(")", index + 2)
+            if close == -1:
+                raise DimensionError(f"{original!r}: unclosed bracket after '^'")
+            out.append("^" + body[index + 2:close].replace("/", _PROTECTED_SLASH))
+            index = close + 1
+            continue
+        out.append(body[index])
+        index += 1
+    return "".join(out)
+
+
+def _parse_product(chunk: str, original: str) -> Dimension:
+    for character in "()·*":
+        chunk = chunk.replace(character, " ")
+    tokens = chunk.split()
+    if not tokens:
+        raise DimensionError(f"{original!r}: empty factor")
+    result = DIMENSIONLESS
+    for token in tokens:
+        symbol, separator, exponent = token.partition("^")
+        key = _SYMBOL_LOOKUP.get(symbol.lower())
+        if key is None:
+            shown = symbol.replace(_PROTECTED_SLASH, "/")
+            raise DimensionError(
+                f"{original!r}: {shown!r} is not an SI base dimension symbol. "
+                f"Expected one of {', '.join(BASE_SYMBOLS)}. This parses "
+                "dimensions, not units."
+            )
+        power = (
+            _exponent_from_text(exponent.replace(_PROTECTED_SLASH, "/"), original)
+            if separator else Fraction(1)
+        )
+        result = result * Dimension.from_mapping({key: power})
+    return result
+
+
+def _exponent_from_text(text: str, original: str) -> Fraction:
+    """Turn an exponent's text into a Fraction.
+
+    Kept here rather than widened into ``_coerce``: strings are a parsing
+    concern, and letting arbitrary strings into the constructor would make
+    ``Dimension.from_mapping({"L": "2"})`` legal, which is not something the
+    algebra should have to think about.
+    """
+    try:
+        return Fraction(text)
+    except (ValueError, ZeroDivisionError):
+        raise DimensionError(f"{original!r}: {text!r} is not a valid exponent")
