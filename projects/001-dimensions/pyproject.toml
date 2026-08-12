@@ -3,14 +3,14 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "unitguard-dimensions"
+name = "dimensions"
 version = "0.1.0"
-description = "Exact dimension algebra over the SI base dimensions, with rational exponents."
+description = "Exact dimension algebra over the seven SI base dimensions, with rational exponents and equality that ignores unit choice but not dimension."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["units", "dimensional-analysis", "si", "correctness"]
+keywords = ["units", "dimensional analysis", "si", "dimensions", "modelling", "correctness"]
 dependencies = []
 
 [tool.setuptools.packages.find]
-include = ["unitguard_dimensions*"]
+include = ["dimensions*"]

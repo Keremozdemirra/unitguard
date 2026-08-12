@@ -29,6 +29,12 @@ projects/
     pyproject.toml     dependencies, if any
 ```
 
+## Projects
+
+| # | Project | What it does |
+| --- | --- | --- |
+| 001 | [dimensions](projects/001-dimensions) | Exact dimension algebra over the seven SI base dimensions, with rational exponents, group laws under test, and equality that ignores unit choice but not dimension. |
+
 ## Roadmap
 
 See [BACKLOG.md](BACKLOG.md).

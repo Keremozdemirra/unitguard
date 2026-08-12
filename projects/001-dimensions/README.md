@@ -1,106 +1,114 @@
-# unitguard-dimensions
+# dimensions
 
-Adding kWh to MWh is a **unit** error. It is wrong by a factor of a thousand and
-a conversion fixes it.
+The layer everything else in `unitguard` stands on.
 
-Adding kWh to tonnes is a **dimension** error. There is no factor to get right,
-because the operation means nothing. No amount of care with conversion tables
-will catch it, because conversion never enters the picture.
+A `Dimension` says what *kind* of quantity something is — energy, mass, mass
+per energy — without saying anything about the units it happens to be written
+in. kWh, MWh, GJ, therms and BTU are all the same dimension. kWh and tCO2e are
+not, and no amount of arithmetic should be able to hide that.
 
-This module catches the second kind. It is the foundation the rest of
-`unitguard` is built on.
+The split matters because the two errors are not equally expensive. Adding kWh
+to GJ is wrong by a factor of 3.6 million and someone usually notices. Adding
+tonnes of carbon to megawatt-hours is wrong in a way that produces a plausible
+number and no complaint. This layer catches the second kind absolutely; the
+first kind is the registry's job.
 
 No dependencies beyond the Python standard library.
 
-## What a dimension is
+## Install
 
-A vector of exponents over the seven SI base dimensions. Energy is energy
-whether written in kWh, joules or therms, and all three carry:
-
+```bash
+git clone <this repo>
+cd projects/001-dimensions
+python3 -m unittest discover -s tests -t .   # 76 tests, no deps needed
 ```
-M · L^2 · T^-2
-```
-
-Multiplying quantities adds the vectors, dividing subtracts them, powers scale
-them, and two quantities may be added only if their vectors are identical. That
-turns dimensional analysis into arithmetic.
 
 ## Use
 
 ```python
-from unitguard_dimensions import ENERGY, EMISSION_INTENSITY, MASS
+from dimensions import ENERGY, INTENSITY, MASS, POWER, TIME, Dimension, parse
 
-ENERGY * EMISSION_INTENSITY == MASS    # True — the Scope 2 identity
-ENERGY.as_dict()                       # {'M': 1, 'L': 2, 'T': -2}
-str(ENERGY)                            # 'M·L^2·T^-2'
+INTENSITY * ENERGY == MASS      # True  -- tCO2e/MWh x MWh is tCO2e
+POWER * TIME == ENERGY          # True
+ENERGY == MASS                  # False
+str(ENERGY)                     # 'L^2·M·T^-2'
+ENERGY.describe()               # 'length^2, mass^1, time^-2'
+
+parse("M/(L^2 M T^-2)") == INTENSITY    # True
+Dimension({"M": 1, "L": 2, "T": -2}) == ENERGY   # True
 ```
 
-The worked example (`PYTHONPATH=. python3 examples/emission_calculation.py`)
-walks through an inverted emission factor — tonnes per MWh entered as MWh per
-tonne, an easy slip that yields a plausible-looking number:
+Seven base dimensions, named per ISO 80000-1: `L` length, `M` mass, `T` time,
+`I` electric current, `Th` thermodynamic temperature, `N` amount of substance,
+`J` luminous intensity. `ENERGY`, `POWER` and `INTENSITY` are provided because
+they are the three this repository exists to police; build anything else from
+the base dimensions.
+
+Run `PYTHONPATH=. python3 examples/energy_intensity.py` for a worked tour:
 
 ```
-energy           M·L^2·T^-2          (energy)
-emission factor  L^-2·T^2            (emission intensity)
-product          M                   (mass)
+What must hold
+========================================================================
+  intensity x energy is a mass                   True
+  power x time is an energy                      True
+  energy / energy is dimensionless               True
+  energy is not a mass                           True
 
-with the factor inverted, the product is M·L^4·T^-4
-
-adding it to scope 1 raises:
-  cannot add or subtract M and M·L^4·T^-4 in scope 1 + scope 2 total: they
-  measure different things, and no conversion factor exists that would make
-  this meaningful
+What is refused
+========================================================================
+  parse('kWh')  -- a unit, not a dimension       DimensionError
+  parse('M/L/T')  -- chained division is ambiguous DimensionError
+  parse('L^1/2')  -- a bare fractional exponent is ambiguous with division DimensionError
+  ENERGY * 3  -- scale the magnitude, not the dimension DimensionError
 ```
 
-The inversion is not caught at the multiplication — that operation is perfectly
-legal, it just produces something that is not a mass. It is caught at the
-addition, which is the first point where the mistake becomes detectable.
+## Method
 
-## Two decisions worth knowing about
+**A dimension is an exponent vector.** Multiplication adds the vectors,
+division subtracts them, exponentiation scales them. Stating it that plainly is
+worth doing, because it is what makes the arithmetic exact rather than
+approximate.
 
-**Exponents are exact rationals, never floats.** Square roots of dimensions
-occur in real formulas: the standard deviation of an energy series has dimension
-E^(1/2). Storing exponents as `float` would make equality unreliable in exactly
-the situation this module exists to make reliable — `0.1 + 0.2 != 0.3` is a poor
-basis for deciding whether two quantities may be added. Exponents are
-`Fraction`, so `(ENERGY ** 2).root(2) == ENERGY` holds exactly, and a test pins
-it.
+**Exponents are rational, not integer and not float.** The square root of an
+area is a length, and a model taking the square root of a variance in
+tCO2e² is doing something meaningful — integer exponents would refuse it.
+Floats would make `(d ** 0.1) ** 10 == d` come out false, and dimension
+equality has to be exact, because "nearly the same dimension" is not a thing.
+`fractions.Fraction` gives both, and the test suite pins `d.root(n) ** n == d`
+for n = 2, 3, 5, 7 over forty randomly generated dimensions.
 
-`Dimension.of` accepts floats for convenience but refuses any that is not an
-exact small rational, on the grounds that a caller computing exponents
-numerically has already lost the guarantee.
+**The tests assert group laws.** Dimensions under multiplication form an
+abelian group: `DIMENSIONLESS` is the identity, multiplication is associative
+and commutative, and every dimension has an inverse. That is not decoration —
+it is the reason dimensional analysis works at all, and every checker built on
+top of this layer will silently rely on it. The laws are swept over sixty
+random dimensions with exponents drawn from thirds and halves as well as
+integers.
 
-**Errors name both dimensions and the context.** "Cannot add these" without
-saying what they were is the least useful message a checker can produce, so
-`check_addable` reports both sides and where it happened.
+**Three things are refused rather than guessed.**
 
-## Verified properties
+`parse("kWh")` raises. Mapping unit strings onto dimensions is the registry's
+job, and a parser that quietly turns `kWh` into energy is one that will
+eventually quietly turn something else into the wrong thing.
 
-Dimensions under multiplication form an abelian group, and the test suite
-asserts the axioms directly — identity, inverse, associativity, commutativity —
-across a sample of seven dimensions rather than trusting the implementation.
-Alongside those: powers add under multiplication, roots invert powers exactly,
-and `ENERGY * EMISSION_INTENSITY == MASS`, the identity every Scope 2
-calculation rests on.
+`ENERGY * 3` raises, with an error message saying to scale the magnitude
+instead. Three kWh is not a different dimension from one kWh.
 
-41 tests.
+`parse("M/L/T")` raises. Chained division reads differently to different
+people, and bracketing costs the caller two characters.
 
-## Base dimensions
+**A bug the round-trip test caught.** `str()` rendered a fractional exponent as
+`Th^-3/2`, and `parse` read that slash as division — so `parse(str(d)) == d`
+failed on any dimension with a non-integer exponent. Non-integer exponents are
+now bracketed on output, `L^(1/2)`, and a bare `L^1/2` is refused as ambiguous.
+The round-trip is swept over 200 random dimensions.
 
-The seven SI base dimensions, as defined in the SI Brochure (BIPM, 9th edition,
-2019): mass, length, time, electric current, thermodynamic temperature, amount
-of substance and luminous intensity.
-
-Currency is deliberately not among them. It is not an SI dimension, it is not
-convertible at a fixed rate, and pretending otherwise would license arithmetic
-that looks checked and is not. Cost per tonne is handled at the unit layer, not
-here.
-
-## What this is not
-
-It knows nothing about units — no kWh, no tonnes, no parsing, no conversion.
-That is the next layer. This module answers only whether two quantities measure
-the same kind of thing.
+**What this is not.** It knows nothing about units, magnitudes, prefixes or
+conversion factors — `Dimension` carries no number at all. It cannot tell kWh
+from GJ, and it is not supposed to. It does not know that tCO2e and tCO2 are
+different things, because they are dimensionally identical and that particular
+trap needs the carbon-specific layer, not this one. And it will not catch a
+formula that is dimensionally valid and still wrong.
 
 ## Licence
 
