@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unitguard-quantity"
+version = "0.1.0"
+description = "Magnitudes carrying units, with exact conversion and arithmetic that refuses incompatible dimensions."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["units", "quantities", "dimensional-analysis", "correctness"]
+dependencies = ["unitguard-dimensions"]
+
+[tool.setuptools.packages.find]
+include = ["unitguard_quantity*"]

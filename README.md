@@ -42,4 +42,5 @@ MIT, per project. See [LICENSE](LICENSE).
 | # | Project | What it does |
 | --- | --- | --- |
 | 001 | [dimensions](projects/001-dimensions) | Exact dimension algebra over the seven SI base dimensions, with rational exponents so roots and equality stay reliable. |
+| 002 | [quantity](projects/002-quantity) | Magnitudes carrying units: exact rational conversion, arithmetic that refuses incompatible dimensions, and affine temperature scales handled rather than pretended away. |
 
