@@ -1,5 +1,7 @@
 # unitguard
 
+[![tests](https://github.com/Keremozdemirra/unitguard/actions/workflows/tests.yml/badge.svg)](https://github.com/Keremozdemirra/unitguard/actions/workflows/tests.yml)
+
 The most expensive errors in quantitative models are not subtle. Someone adds
 kWh to MWh. Someone reports tonnes of carbon as tonnes of CO2 and is off by a
 factor of 3.67. Someone divides by an intensity that was per unit of revenue,
