@@ -35,6 +35,12 @@ projects/
 
 See [BACKLOG.md](BACKLOG.md).
 
+## Runs in the browser
+
+Each project here is also a case study on the author's site, with the method, the assumptions and what it refuses to answer, and a version that runs in the page:
+
+- [UnitGuard](https://keremozdemir.de/cases/unitguard/)
+
 ## Licence
 
 MIT, per project. See [LICENSE](LICENSE).
